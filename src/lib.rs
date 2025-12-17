@@ -48,6 +48,8 @@ use utils::window::{should_use_panel, wait_for_window};
 
 pub mod utils;
 pub use utils::env::require_kitty;
+pub use utils::keys::{common as keys, type_and_execute, type_string};
+pub use utils::patterns::{create_env_wrapper, create_mock_executable, parse_mock_log, wait_for_file};
 pub use utils::wait::{wait_for_clean_contains, wait_for_ready_marker, wait_for_screen_text, wait_for_screen_text_clean};
 
 #[cfg(test)]
@@ -73,9 +75,20 @@ impl KittyHarness {
 		// Panel requires Wayland with layer-shell protocol support
 		let use_panel = should_use_panel();
 
+		// Build environment passthrough for the launched command so it can talk back to this kitty.
+		let mut base_env = vec![("KITTY_LISTEN_ON".to_string(), socket_addr.clone())];
+		if let Ok(bin) = std::env::var("KITTY_REMOTE_BIN") {
+			base_env.push(("KITTY_REMOTE_BIN".to_string(), bin));
+		}
+
+		let command_with_env = command.to_string();
+
 		if use_panel {
 			// Try to launch as a background panel (requires Wayland layer-shell)
 			let mut cmd = Command::new("kitty");
+			for (k, v) in &base_env {
+				cmd.env(k, v);
+			}
 			let status = cmd
 				.current_dir(working_dir)
 				.args([
@@ -94,7 +107,7 @@ impl KittyHarness {
 					"--noprofile",
 					"--norc",
 					"-lc",
-					command,
+					&command_with_env,
 				])
 				.status()
 				.expect("kitty panel launch should run");
@@ -111,6 +124,9 @@ impl KittyHarness {
 			if std::env::var("LIBGL_ALWAYS_SOFTWARE").is_err() {
 				cmd.env("LIBGL_ALWAYS_SOFTWARE", "1");
 			}
+			for (k, v) in &base_env {
+				cmd.env(k, v);
+			}
 
 			let status = cmd
 				.current_dir(working_dir)
@@ -126,7 +142,7 @@ impl KittyHarness {
 					"--noprofile",
 					"--norc",
 					"-lc",
-					command,
+					&command_with_env,
 				])
 				.status()
 				.expect("kitty launch should run");

@@ -2,8 +2,6 @@
 
 Integration test harness for driving kitty terminal via remote control protocol and capturing rendered screen output. The library enables automated testing of terminal-based applications by launching kitty instances, sending input sequences, and extracting screen content with or without ANSI escape sequences.
 
-This crate was developed to support integration tests for [frz](https://github.com/Alb-O/frz).
-
 ## Core functionality
 
 The harness provides programmatic control over kitty terminal instances through the remote control protocol. It launches background kitty panels via Unix domain sockets, sends text and encoded key sequences, and captures screen contents for assertion in integration tests.
@@ -35,6 +33,76 @@ fn terminal_application_test() {
         assert!(clean.contains("expected output"));
     });
 }
+```
+
+## Terminal Key Encoding Quirks
+
+When testing terminal applications, key encoding can be tricky. Here are common issues you may encounter:
+
+### Ctrl+Enter vs Ctrl+J
+
+Many terminals translate `Ctrl+Enter` to `Ctrl+J` (ASCII 0x0A). When testing applications that need `Ctrl+Enter`, use `Ctrl+J` instead:
+
+```rust
+use kitty_test_harness::{kitty_send_keys, keys};
+use termwiz::input::{KeyCode, Modifiers};
+
+// This might not work as expected through the terminal:
+// kitty_send_keys!(kitty, (KeyCode::Enter, Modifiers::CTRL));
+
+// Use Ctrl+J instead (same byte value, more reliable):
+kitty_send_keys!(kitty, (KeyCode::Char('j'), Modifiers::CTRL));
+
+// Or use the pre-defined constant:
+use kitty_test_harness::send_keys;
+send_keys(kitty, &[keys::CTRL_J]);
+```
+
+### Typing and Executing Commands
+
+For editors that use scratch buffers or command modes (like Kakoune-style editors), use the `type_and_execute` helper:
+
+```rust
+use kitty_test_harness::{type_string, type_and_execute, kitty_send_keys};
+use termwiz::input::KeyCode;
+
+// Type ':' to enter command mode, type command, execute with Ctrl+J
+kitty_send_keys!(kitty, KeyCode::Char(':'));
+type_and_execute(kitty, "my-command arg1 arg2");
+```
+
+## Testing External Command Invocations
+
+When testing that your application correctly invokes external commands (like `kitty @` for remote control), use mock executables:
+
+```rust
+use kitty_test_harness::{create_mock_executable, create_env_wrapper, parse_mock_log, wait_for_file};
+use std::path::PathBuf;
+
+let workspace = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+let tmp_dir = workspace.join("tmp");
+let log_path = tmp_dir.join("kitty-mock.log");
+
+// Create a mock that logs its arguments
+let mock = create_mock_executable(&log_path, &tmp_dir);
+
+// Create a wrapper that sets KITTY_REMOTE_BIN to point to our mock
+let wrapper = create_env_wrapper(
+    &[("KITTY_REMOTE_BIN", mock.to_str().unwrap())],
+    "/path/to/your/app",
+    &tmp_dir
+);
+
+// Use wrapper as the command for kitty
+with_kitty_capture(&workspace, &wrapper.display().to_string(), |kitty| {
+    // Trigger the action that should invoke kitty @...
+    kitty_send_keys!(kitty, /* ... */);
+});
+
+// Check mock was invoked correctly
+assert!(wait_for_file(&log_path, 10), "mock was not invoked");
+let args = parse_mock_log(&log_path).unwrap();
+assert!(args.iter().any(|a| a == "--cwd"));
 ```
 
 ## Snapshot testing
@@ -88,3 +156,21 @@ Boolean gate for kitty-driven tests. Checks `KITTY_TESTS`, ensures a DISPLAY/WAY
 ### `wait_for_clean_contains()`
 
 Convenience helper that polls `screen_text_clean` until the cleaned text includes a substring, returning the cleaned text.
+
+### Key Helpers (`utils::keys`)
+
+Pre-defined key constants for common operations:
+- `keys::CTRL_J` - Ctrl+J (often equivalent to Ctrl+Enter)
+- `keys::CTRL_C`, `keys::CTRL_D`, `keys::CTRL_Z` - Common control keys
+- `keys::ESCAPE`, `keys::ENTER`, `keys::TAB`, `keys::SHIFT_TAB`
+
+Helper functions:
+- `type_string(kitty, text)` - Type a string character by character
+- `type_and_execute(kitty, text)` - Type text and execute with Ctrl+J
+
+### Pattern Helpers (`utils::patterns`)
+
+- `create_mock_executable(log_path, output_dir)` - Create a script that logs invocations
+- `create_env_wrapper(env_vars, target_cmd, output_dir)` - Create a wrapper that sets env vars
+- `parse_mock_log(log_path)` - Parse a mock log into argument lines
+- `wait_for_file(path, retries)` - Wait for a file to exist
