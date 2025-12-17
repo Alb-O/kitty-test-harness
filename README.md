@@ -75,8 +75,16 @@ Macro accepting KeyCode values or (KeyCode, Modifiers) tuples. Encodes key press
 
 ### `manifest_dir()`
 
-Returns the CARGO_MANIFEST_DIR path for resolving test-relative paths.
+Returns this crate's `CARGO_MANIFEST_DIR` (useful for harness-owned tests; consumers should use their own manifest dir when embedding the harness).
 
 ### `kitty_snapshot_test!`
 
 Macro wrapper for insta snapshot tests with automatic working directory binding.
+
+### `require_kitty()`
+
+Boolean gate for kitty-driven tests. Checks `KITTY_TESTS`, ensures a DISPLAY/WAYLAND_DISPLAY is present, and verifies the kitty binary is on PATH; prints a skip reason and returns `false` when unavailable.
+
+### `wait_for_clean_contains()`
+
+Convenience helper that polls `screen_text_clean` until the cleaned text includes a substring, returning the cleaned text.

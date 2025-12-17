@@ -48,3 +48,11 @@ pub fn wait_for_screen_text_clean(
 	}
 	last
 }
+
+/// Wait until the cleaned screen text contains the provided substring.
+pub fn wait_for_clean_contains(kitty: &KittyHarness, timeout: Duration, needle: &str) -> String {
+	let (_raw, clean) = wait_for_screen_text_clean(kitty, timeout, |_raw, clean| {
+		clean.contains(needle)
+	});
+	clean
+}

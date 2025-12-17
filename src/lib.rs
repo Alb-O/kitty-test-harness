@@ -47,7 +47,8 @@ use termwiz::input::{KeyCode, KeyCodeEncodeModes, KeyboardEncoding, Modifiers};
 use utils::window::{should_use_panel, wait_for_window};
 
 pub mod utils;
-pub use utils::wait::{wait_for_ready_marker, wait_for_screen_text, wait_for_screen_text_clean};
+pub use utils::env::require_kitty;
+pub use utils::wait::{wait_for_clean_contains, wait_for_ready_marker, wait_for_screen_text, wait_for_screen_text_clean};
 
 #[cfg(test)]
 use insta as _;
