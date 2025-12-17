@@ -39,6 +39,7 @@ use kitty_remote_bindings::model::WindowId;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 use termwiz::escape::csi::KittyKeyboardFlags;
@@ -98,9 +99,19 @@ impl KittyHarness {
 				.expect("kitty panel launch should run");
 			assert!(status.success(), "kitty panel should launch");
 		} else {
-			// Use a normal window instead of a panel
+			// Use a normal window instead of a panel (e.g., WSL/X11)
 			let mut cmd = Command::new("kitty");
-			let _ = cmd
+			if std::env::var("KITTY_ENABLE_WAYLAND").is_err() {
+				cmd.env("KITTY_ENABLE_WAYLAND", "0");
+			}
+			if std::env::var("WINIT_UNIX_BACKEND").is_err() {
+				cmd.env("WINIT_UNIX_BACKEND", "x11");
+			}
+			if std::env::var("LIBGL_ALWAYS_SOFTWARE").is_err() {
+				cmd.env("LIBGL_ALWAYS_SOFTWARE", "1");
+			}
+
+			let status = cmd
 				.current_dir(working_dir)
 				.args([
 					"--listen-on",
@@ -109,17 +120,18 @@ impl KittyHarness {
 					&session,
 					"-o",
 					"allow_remote_control=yes",
+					"--detach",
 					"bash",
 					"--noprofile",
 					"--norc",
 					"-lc",
 					command,
 				])
-				.spawn()
-				.expect("kitty launch should spawn")
-				.wait();
+				.status()
+				.expect("kitty launch should run");
+			assert!(status.success(), "kitty window should launch");
 			// Give kitty a moment to create the socket
-			thread::sleep(Duration::from_millis(200));
+			thread::sleep(Duration::from_millis(300));
 		}
 
 		let window_id = wait_for_window(&socket_addr);
@@ -257,6 +269,30 @@ pub fn with_kitty_capture<T>(
 ) -> T {
 	let harness = KittyHarness::launch(working_dir, command);
 	driver(&harness)
+}
+
+/// Run a closure and panic if it exceeds the given timeout.
+pub fn run_with_timeout<T, F>(timeout: Duration, f: F) -> T
+where
+	F: FnOnce() -> T + Send + 'static,
+	T: Send + 'static,
+{
+	let (tx, rx) = mpsc::channel();
+	thread::spawn(move || {
+		let _ = tx.send(f());
+	});
+	rx.recv_timeout(timeout)
+		.expect(&format!("kitty test timed out after {:?}", timeout))
+}
+
+/// Small helper to yield to the compositor/kitty for a short period.
+pub fn pause_briefly() {
+	thread::sleep(Duration::from_millis(300));
+}
+
+/// Send an Alt-modified character using an ESC prefix.
+pub fn send_alt_key(kitty: &KittyHarness, ch: char) {
+	kitty.send_text(&format!("\u{1b}{ch}"));
 }
 
 /// Resolve the cargo manifest directory for the current crate.
