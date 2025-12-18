@@ -34,8 +34,8 @@
 
 use ansi_escape_sequences::strip_ansi;
 use kitty_remote_bindings::command::options::Matcher;
-use kitty_remote_bindings::command::{CommandOutput, SendText};
-use kitty_remote_bindings::model::WindowId;
+use kitty_remote_bindings::command::{CommandOutput, Ls, SendText};
+use kitty_remote_bindings::model::{OsWindows, WindowId};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -159,19 +159,53 @@ impl KittyHarness {
 		}
 	}
 
-	/// Send raw text to the kitty window (e.g., escape sequences for arrows).
-	pub fn send_text(&self, text: &str) {
+	/// Return the socket address used for kitty remote control.
+	pub fn socket_addr(&self) -> &str {
+		&self.socket_addr
+	}
+
+	/// Return the initial kitty window id created by the harness.
+	pub fn window_id(&self) -> WindowId {
+		self.window_id
+	}
+
+	/// Best-effort list of kitty windows managed by this harness.
+	pub fn try_list_windows(&self) -> Option<OsWindows> {
+		let ls = Ls::new().to(self.socket_addr.clone());
+		let mut cmd: Command = (&ls).into();
+		let output = cmd.output().ok()?;
+		Ls::result(&output).ok()
+	}
+
+	/// List kitty windows managed by this harness.
+	pub fn list_windows(&self) -> OsWindows {
+		self.try_list_windows()
+			.expect("kitty ls should run and parse")
+	}
+
+	/// Return all known kitty window ids for this harness.
+	pub fn window_ids(&self) -> Vec<WindowId> {
+		all_window_ids(&self.list_windows())
+	}
+
+	/// Send raw text to a specific kitty window (e.g., escape sequences for arrows).
+	pub fn send_text_to_window(&self, window_id: WindowId, text: &str) {
 		let send = SendText::new(text.to_string())
 			.to(self.socket_addr.clone())
-			.matcher(Matcher::Id(self.window_id));
+			.matcher(Matcher::Id(window_id));
 		let mut cmd: Command = (&send).into();
 		let output = cmd.output().expect("kitty send-text should run");
 		std::thread::sleep(Duration::from_millis(20));
 		SendText::result(&output).expect("kitty send-text should succeed");
 	}
 
+	/// Send raw text to the kitty window (e.g., escape sequences for arrows).
+	pub fn send_text(&self, text: &str) {
+		self.send_text_to_window(self.window_id, text)
+	}
+
 	/// Capture the current screen contents as ANSI text with trailing whitespace trimmed.
-	pub fn screen_text(&self) -> String {
+	pub fn screen_text_for_window(&self, window_id: WindowId) -> String {
 		let output = Command::new("kitty")
 			.args([
 				"@",
@@ -179,7 +213,7 @@ impl KittyHarness {
 				&self.socket_addr,
 				"get-text",
 				"--match",
-				&format!("id:{}", self.window_id.0),
+				&format!("id:{}", window_id.0),
 				"--ansi",
 				"--extent",
 				"screen",
@@ -196,12 +230,31 @@ impl KittyHarness {
 		clean_trailing_whitespace(&raw)
 	}
 
+	/// Capture the current screen contents as ANSI text with trailing whitespace trimmed.
+	pub fn screen_text(&self) -> String {
+		self.screen_text_for_window(self.window_id)
+	}
+
 	/// Capture the screen text and a variant with ANSI escapes stripped.
-	pub fn screen_text_clean(&self) -> (String, String) {
-		let raw = self.screen_text();
+	pub fn screen_text_clean_for_window(&self, window_id: WindowId) -> (String, String) {
+		let raw = self.screen_text_for_window(window_id);
 		let clean = strip_ansi(&raw);
 		(raw, clean)
 	}
+
+	/// Capture the screen text and a variant with ANSI escapes stripped.
+	pub fn screen_text_clean(&self) -> (String, String) {
+		self.screen_text_clean_for_window(self.window_id)
+	}
+}
+
+fn all_window_ids(ls: &OsWindows) -> Vec<WindowId> {
+	ls.0
+		.iter()
+		.flat_map(|os_window| os_window.tabs.iter())
+		.flat_map(|tab| tab.windows.iter())
+		.map(|window| window.id)
+		.collect()
 }
 
 static SESSION_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -214,16 +267,27 @@ fn next_session_name() -> String {
 
 impl Drop for KittyHarness {
 	fn drop(&mut self) {
-		let _ = Command::new("kitty")
-			.args([
-				"@",
-				"--to",
-				&self.socket_addr,
-				"close-window",
-				"--match",
-				&format!("id:{}", self.window_id.0),
-			])
-			.status();
+		let mut window_ids = self
+			.try_list_windows()
+			.map(|ls| all_window_ids(&ls))
+			.unwrap_or_default();
+
+		if window_ids.is_empty() {
+			window_ids.push(self.window_id);
+		}
+
+		for window_id in window_ids {
+			let _ = Command::new("kitty")
+				.args([
+					"@",
+					"--to",
+					&self.socket_addr,
+					"close-window",
+					"--match",
+					&format!("id:{}", window_id.0),
+				])
+				.status();
+		}
 	}
 }
 
