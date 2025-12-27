@@ -25,3 +25,5 @@ insta = "1.44"
 [lints.rust]
 missing_docs = "warn"
 unused_crate_dependencies = "warn"
+
+[workspace]

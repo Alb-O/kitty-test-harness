@@ -56,3 +56,25 @@ pub fn wait_for_clean_contains(kitty: &KittyHarness, timeout: Duration, needle: 
 	});
 	clean
 }
+
+/// Rapidly sample the screen for a duration, collecting all captured frames.
+///
+/// This is useful for catching transient states like animations. The function
+/// captures as fast as possible without any sleep between captures.
+///
+/// Returns a vector of (raw, clean) screen captures with timestamps relative
+/// to the start of sampling.
+pub fn sample_screen_rapidly(
+	kitty: &KittyHarness,
+	duration: Duration,
+) -> Vec<(Duration, String, String)> {
+	let start = Instant::now();
+	let mut samples = Vec::new();
+
+	while start.elapsed() < duration {
+		let (raw, clean) = kitty.screen_text_clean();
+		samples.push((start.elapsed(), raw, clean));
+	}
+
+	samples
+}
