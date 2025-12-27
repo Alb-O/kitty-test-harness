@@ -49,6 +49,11 @@ use utils::window::{should_use_panel, wait_for_window};
 pub mod utils;
 pub use utils::env::require_kitty;
 pub use utils::keys::{common as keys, type_and_execute, type_string};
+pub use utils::mouse::{
+    MouseButton, encode_mouse_drag, encode_mouse_move, encode_mouse_press, encode_mouse_release,
+    send_mouse_click, send_mouse_drag, send_mouse_drag_with_steps, send_mouse_move,
+    send_mouse_press, send_mouse_release,
+};
 pub use utils::patterns::{create_env_wrapper, create_mock_executable, parse_mock_log, wait_for_file};
 pub use utils::wait::{wait_for_clean_contains, wait_for_ready_marker, wait_for_screen_text, wait_for_screen_text_clean};
 
