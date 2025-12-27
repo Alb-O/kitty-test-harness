@@ -8,6 +8,8 @@ pub mod keys;
 pub mod mouse;
 /// Common testing patterns (mock executables, env wrappers, etc.).
 pub mod patterns;
+/// Screen content parsing (separators, ANSI colors, etc.).
+pub mod screen;
 /// Helpers for waiting for certain conditions in the kitty harness.
 pub mod wait;
 /// Helpers for managing kitty windows and panels.

@@ -55,6 +55,11 @@ pub use utils::mouse::{
     send_mouse_press, send_mouse_release,
 };
 pub use utils::patterns::{create_env_wrapper, create_mock_executable, parse_mock_log, wait_for_file};
+pub use utils::screen::{
+    extract_row_colors, extract_row_colors_parsed, find_horizontal_separator_row,
+    find_separator_cols_at_row, find_separator_rows_at_col, find_vertical_separator_col, AnsiColor,
+    HORIZONTAL_SEPARATOR, VERTICAL_SEPARATOR,
+};
 pub use utils::wait::{wait_for_clean_contains, wait_for_ready_marker, wait_for_screen_text, wait_for_screen_text_clean};
 
 #[cfg(test)]
