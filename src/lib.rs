@@ -60,7 +60,8 @@ pub use utils::screen::{
     find_separator_cols_at_row, find_separator_rows_at_col, find_vertical_separator_col, AnsiColor,
     HORIZONTAL_SEPARATOR, VERTICAL_SEPARATOR,
 };
-pub use utils::wait::{wait_for_clean_contains, wait_for_ready_marker, wait_for_screen_text, wait_for_screen_text_clean};
+pub use utils::log::{cleanup_test_log, create_test_log, read_test_log, wait_for_log_line};
+pub use utils::wait::{sample_screen_rapidly, wait_for_clean_contains, wait_for_ready_marker, wait_for_screen_text, wait_for_screen_text_clean};
 
 #[cfg(test)]
 use insta as _;

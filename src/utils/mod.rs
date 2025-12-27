@@ -4,6 +4,8 @@
 pub mod env;
 /// Terminal key encoding helpers and common key constants.
 pub mod keys;
+/// Test logging utilities for debugging.
+pub mod log;
 /// Mouse event encoding and sending.
 pub mod mouse;
 /// Common testing patterns (mock executables, env wrappers, etc.).
