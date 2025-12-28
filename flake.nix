@@ -12,11 +12,21 @@
     };
   };
 
-  outputs = inputs@{ self, nixpkgs, flake-parts, systems, rust-overlay, crane, ... }:
+  outputs =
+    inputs@{
+      self,
+      nixpkgs,
+      flake-parts,
+      systems,
+      rust-overlay,
+      crane,
+      ...
+    }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = import systems;
 
-      perSystem = { system, ... }:
+      perSystem =
+        { system, ... }:
         let
           overlays = [ rust-overlay.overlays.default ];
           pkgs = import nixpkgs { inherit system overlays; };
@@ -32,9 +42,12 @@
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         in
         {
-          packages.default = craneLib.buildPackage (commonArgs // {
-            inherit cargoArtifacts;
-          });
+          packages.default = craneLib.buildPackage (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+            }
+          );
 
           apps.kitty-runner = {
             type = "app";
