@@ -14,6 +14,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: nightly-2026-01-21
           components: clippy
 
       - name: Run tests
