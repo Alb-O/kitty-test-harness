@@ -162,6 +162,51 @@ pub fn send_mouse_drag_with_steps(kitty: &KittyHarness, button: MouseButton, sta
 	kitty.send_text(&encode_mouse_release(button, end_col, end_row));
 }
 
+/// Scroll direction for mouse scroll events.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScrollDirection {
+	/// Scroll up.
+	Up,
+	/// Scroll down.
+	Down,
+	/// Scroll left.
+	Left,
+	/// Scroll right.
+	Right,
+}
+
+impl ScrollDirection {
+	/// Returns the SGR button code for this scroll direction.
+	///
+	/// Scroll events use codes 64-67:
+	/// * 64 = scroll up
+	/// * 65 = scroll down
+	/// * 66 = scroll left
+	/// * 67 = scroll right
+	fn code(self) -> u8 {
+		match self {
+			ScrollDirection::Up => 64,
+			ScrollDirection::Down => 65,
+			ScrollDirection::Left => 66,
+			ScrollDirection::Right => 67,
+		}
+	}
+}
+
+/// Encodes a mouse scroll event in SGR format.
+///
+/// Coordinates are 0-based (converted to 1-based for SGR).
+pub fn encode_mouse_scroll(direction: ScrollDirection, col: u16, row: u16) -> String {
+	let col = col + 1;
+	let row = row + 1;
+	format!("\x1b[<{};{};{}M", direction.code(), col, row)
+}
+
+/// Sends a mouse scroll event at the specified position.
+pub fn send_mouse_scroll(kitty: &KittyHarness, direction: ScrollDirection, col: u16, row: u16) {
+	kitty.send_text(&encode_mouse_scroll(direction, col, row));
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -198,5 +243,13 @@ mod tests {
 	fn test_encode_mouse_move() {
 		// Move uses code 35 (32 + 3)
 		assert_eq!(encode_mouse_move(0, 0), "\x1b[<35;1;1M");
+	}
+
+	#[test]
+	fn test_encode_mouse_scroll() {
+		assert_eq!(encode_mouse_scroll(ScrollDirection::Up, 0, 0), "\x1b[<64;1;1M");
+		assert_eq!(encode_mouse_scroll(ScrollDirection::Down, 9, 4), "\x1b[<65;10;5M");
+		assert_eq!(encode_mouse_scroll(ScrollDirection::Left, 0, 0), "\x1b[<66;1;1M");
+		assert_eq!(encode_mouse_scroll(ScrollDirection::Right, 0, 0), "\x1b[<67;1;1M");
 	}
 }

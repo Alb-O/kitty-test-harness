@@ -318,6 +318,7 @@ name = "kitty-test-harness"
 version = "0.2.1"
 dependencies = [
  "ansi-escape-sequences",
+ "base64",
  "insta",
  "kitty-remote-bindings",
  "termwiz",

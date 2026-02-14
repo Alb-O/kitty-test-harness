@@ -10,6 +10,10 @@ pub mod log;
 pub mod mouse;
 /// Common testing patterns (mock executables, env wrappers, etc.).
 pub mod patterns;
+/// Recording replay for automated session testing.
+pub mod replay;
+/// Window resize utilities.
+pub mod resize;
 /// Screen content parsing (separators, ANSI colors, etc.).
 pub mod screen;
 /// Helpers for waiting for certain conditions in the kitty harness.

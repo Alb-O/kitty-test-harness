@@ -16,6 +16,7 @@ path = "src/bin/kitty-runner.rs"
 
 [dependencies]
 ansi-escape-sequences = "0.1"
+base64 = "0.22"
 kitty-remote-bindings = "0.5"
 termwiz = "0.23"
 
