@@ -70,6 +70,9 @@ pub fn encode_mouse_press(button: MouseButton, col: u16, row: u16) -> String {
 /// - Cx: column (1-based)
 /// - Cy: row (1-based)
 /// - m: release indicator
+///
+/// Release events keep the same button code as press and change the trailer
+/// from `M` to `m`.
 pub fn encode_mouse_release(button: MouseButton, col: u16, row: u16) -> String {
     let col = col + 1;
     let row = row + 1;
@@ -190,7 +193,26 @@ mod tests {
 
     #[test]
     fn test_encode_mouse_release() {
-        assert_eq!(encode_mouse_release(MouseButton::Left, 0, 0), "\x1b[<0;1;1m");
+        assert_eq!(
+            encode_mouse_release(MouseButton::Left, 0, 0),
+            "\x1b[<0;1;1m"
+        );
+    }
+
+    #[test]
+    fn test_encode_mouse_release_per_button() {
+        assert_eq!(
+            encode_mouse_release(MouseButton::Left, 2, 3),
+            "\x1b[<0;3;4m"
+        );
+        assert_eq!(
+            encode_mouse_release(MouseButton::Middle, 2, 3),
+            "\x1b[<1;3;4m"
+        );
+        assert_eq!(
+            encode_mouse_release(MouseButton::Right, 2, 3),
+            "\x1b[<2;3;4m"
+        );
     }
 
     #[test]

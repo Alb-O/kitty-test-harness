@@ -121,6 +121,21 @@ kitty_snapshot_test!(navigation_state, |dir| {
 });
 ```
 
+## Development checks
+
+Run the same checks used in CI:
+
+```bash
+cargo test --all-targets
+cargo clippy --all-targets --all-features -- -D warnings
+```
+
+Run kitty-backed integration tests in a GUI session:
+
+```bash
+KITTY_TESTS=1 cargo test --test kitty_smoke
+```
+
 ## Implementation details
 
 The harness uses kitty's `+kitten panel` with `--edge=background` to be non-intrusive but still visible in the background.
@@ -156,6 +171,10 @@ Boolean gate for kitty-driven tests. Checks `KITTY_TESTS`, ensures a DISPLAY/WAY
 ### `wait_for_clean_contains()`
 
 Convenience helper that polls `screen_text_clean` until the cleaned text includes a substring, returning the cleaned text.
+
+### `wait_for_screen_text_or_timeout()` and `wait_for_screen_text_clean_or_timeout()`
+
+Timeout-explicit variants of the wait helpers that return `Result<_, WaitTimeout>` instead of silently returning the last capture on timeout. `WaitTimeout` includes elapsed time and the last captured screen sample(s).
 
 ### Key Helpers (`utils::keys`)
 
