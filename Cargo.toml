@@ -1,6 +1,6 @@
 [package]
 name = "kitty-test-harness"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 description = "Integration test harness for driving kitty terminal via remote control and capturing screen output"
 license = "MIT"
