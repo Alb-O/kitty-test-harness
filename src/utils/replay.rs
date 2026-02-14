@@ -225,11 +225,40 @@ fn parse_resize(rest: &str) -> Option<ReplayEvent> {
 	Some(ReplayEvent::Resize { cols, rows })
 }
 
+/// Replay timing configuration.
+pub struct ReplayTiming {
+	/// Pause between batches (separated by blank lines in the recording).
+	pub batch_pause: Duration,
+	/// Delay between individual keys within a batch. When non-zero, keys
+	/// are sent one at a time instead of concatenated into a single
+	/// `send_text` call, giving the application time to process each key.
+	pub key_delay: Duration,
+}
+
+impl ReplayTiming {
+	/// Batched replay with no per-key delay.
+	pub fn batched(batch_pause: Duration) -> Self {
+		Self {
+			batch_pause,
+			key_delay: Duration::ZERO,
+		}
+	}
+
+	/// Per-key replay where each key is sent individually with a delay.
+	pub fn per_key(key_delay: Duration) -> Self {
+		Self {
+			batch_pause: key_delay,
+			key_delay,
+		}
+	}
+}
+
 /// Replays parsed events against a kitty harness.
 ///
-/// Key batches are encoded using termwiz and sent as a single `send_text`
-/// call. Between batches, a configurable pause is inserted.
-pub fn replay(kitty: &KittyHarness, events: &[ReplayEvent], batch_pause: Duration) {
+/// Key batches are encoded using termwiz. With a zero `key_delay`, each
+/// batch is sent as a single `send_text` call. With a non-zero `key_delay`,
+/// keys are sent individually with a pause between each one.
+pub fn replay(kitty: &KittyHarness, events: &[ReplayEvent], timing: ReplayTiming) {
 	use termwiz::escape::csi::KittyKeyboardFlags;
 	use termwiz::input::{KeyCodeEncodeModes, KeyboardEncoding};
 
@@ -243,16 +272,27 @@ pub fn replay(kitty: &KittyHarness, events: &[ReplayEvent], batch_pause: Duratio
 	for event in events {
 		match event {
 			ReplayEvent::KeyBatch(keys) => {
-				let mut encoded = String::new();
-				for key_name in keys {
-					if let Some(e) = encode_key_name(key_name, modes) {
-						encoded.push_str(&e);
+				if timing.key_delay.is_zero() {
+					// Send entire batch as one string.
+					let mut encoded = String::new();
+					for key_name in keys {
+						if let Some(e) = encode_key_name(key_name, modes) {
+							encoded.push_str(&e);
+						}
+					}
+					if !encoded.is_empty() {
+						kitty.send_text(&encoded);
+					}
+				} else {
+					// Send each key individually with a delay.
+					for key_name in keys {
+						if let Some(e) = encode_key_name(key_name, modes) {
+							kitty.send_text(&e);
+							std::thread::sleep(timing.key_delay);
+						}
 					}
 				}
-				if !encoded.is_empty() {
-					kitty.send_text(&encoded);
-				}
-				std::thread::sleep(batch_pause);
+				std::thread::sleep(timing.batch_pause);
 			}
 			ReplayEvent::MousePress { button, col, row } => {
 				kitty.send_text(&encode_mouse_press(*button, *col, *row));

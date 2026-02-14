@@ -58,10 +58,10 @@ pub use utils::mouse::{
 	send_mouse_drag, send_mouse_drag_with_steps, send_mouse_move, send_mouse_press, send_mouse_release, send_mouse_scroll,
 };
 pub use utils::patterns::{create_env_wrapper, create_mock_executable, parse_mock_log, wait_for_file};
-pub use utils::replay::{ReplayEvent, parse_recording, replay};
+pub use utils::replay::{ReplayEvent, ReplayTiming, parse_recording, replay};
 pub use utils::resize::resize_window;
 pub use utils::screen::{
-	AnsiColor, HORIZONTAL_SEPARATOR, VERTICAL_SEPARATOR, extract_row_colors, extract_row_colors_parsed, find_horizontal_separator_row,
+	AnsiColor, HORIZONTAL_SEPARATOR, VERTICAL_SEPARATOR, extract_row_colors, extract_row_colors_parsed, fg_color_at_text, find_horizontal_separator_row,
 	find_separator_cols_at_row, find_separator_rows_at_col, find_vertical_separator_col,
 };
 pub use utils::wait::{

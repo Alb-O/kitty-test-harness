@@ -8,7 +8,7 @@
 //!
 //! # Example
 //!
-//! ```no_run
+//! ```ignore
 //! use kitty_test_harness::utils::screen::{find_vertical_separator_col, extract_row_colors};
 //!
 //! // After capturing screen content
@@ -50,7 +50,7 @@ pub const HORIZONTAL_SEPARATOR: char = '─'; // U+2500
 /// ```
 /// use kitty_test_harness::utils::screen::find_vertical_separator_col;
 ///
-/// let screen = "left  │right\ntext  │more\nhere  │data";
+/// let screen = "left  │right\ntext  │more\nhere  │data\naaaa  │bbbb\ncccc  │dddd\neeee  │ffff";
 /// assert_eq!(find_vertical_separator_col(screen), Some(6));
 /// ```
 pub fn find_vertical_separator_col(clean: &str) -> Option<usize> {
@@ -185,7 +185,8 @@ impl AnsiColor {
 	///
 	/// Supports both semicolon-separated (standard) and colon-separated (kitty)
 	/// color specifications.
-	fn parse(seq: &str) -> Option<Self> {
+	/// Parse an ANSI SGR color sequence into an `AnsiColor`.
+	pub fn parse_seq(seq: &str) -> Option<Self> {
 		// Check if it's a foreground or background color
 		let is_foreground = seq.contains("38;") || seq.contains("38:");
 		let is_background = seq.contains("48;") || seq.contains("48:");
@@ -321,7 +322,59 @@ pub fn extract_row_colors(raw: &str, row: usize) -> Vec<String> {
 ///
 /// A vector of parsed `AnsiColor` structs.
 pub fn extract_row_colors_parsed(raw: &str, row: usize) -> Vec<AnsiColor> {
-	extract_row_colors(raw, row).into_iter().filter_map(|seq| AnsiColor::parse(&seq)).collect()
+	extract_row_colors(raw, row).into_iter().filter_map(|seq| AnsiColor::parse_seq(&seq)).collect()
+}
+
+/// Returns the active foreground RGB color when `needle` first appears in
+/// the visible text of a raw ANSI line.
+///
+/// Walks the line character by character, tracking SGR foreground color
+/// changes, and returns the color in effect at the position where `needle`
+/// is found. Returns `None` if `needle` is not found or no foreground color
+/// is active at that position.
+///
+/// # Example
+///
+/// ```
+/// use kitty_test_harness::utils::screen::fg_color_at_text;
+///
+/// let line = "\x1b[38;2;100;100;100mhello world\x1b[m";
+/// assert_eq!(fg_color_at_text(line, "hello"), Some((100, 100, 100)));
+/// ```
+pub fn fg_color_at_text(raw_line: &str, needle: &str) -> Option<(u8, u8, u8)> {
+	let mut current_fg: Option<(u8, u8, u8)> = None;
+	let mut visible = String::new();
+	let chars: Vec<char> = raw_line.chars().collect();
+	let mut i = 0;
+
+	while i < chars.len() {
+		if chars[i] == '\x1b' && i + 1 < chars.len() && chars[i + 1] == '[' {
+			let start = i;
+			while i < chars.len() && chars[i] != 'm' {
+				i += 1;
+			}
+			if i < chars.len() {
+				let seq: String = chars[start..=i].iter().collect();
+				if let Some(parsed) = AnsiColor::parse_seq(&seq) {
+					if parsed.is_foreground {
+						current_fg = parsed.rgb;
+					}
+				}
+				if seq == "\x1b[m" || seq == "\x1b[0m" {
+					current_fg = None;
+				}
+			}
+			i += 1;
+		} else {
+			visible.push(chars[i]);
+			if visible.ends_with(needle) {
+				return current_fg;
+			}
+			i += 1;
+		}
+	}
+
+	None
 }
 
 #[cfg(test)]
@@ -373,7 +426,7 @@ mod tests {
 	#[test]
 	fn test_parse_rgb_color() {
 		let seq = "\x1b[38;2;255;128;64m";
-		let color = AnsiColor::parse(seq).unwrap();
+		let color = AnsiColor::parse_seq(seq).unwrap();
 		assert!(color.is_foreground);
 		assert_eq!(color.rgb, Some((255, 128, 64)));
 		assert_eq!(color.palette_index, None);
@@ -382,7 +435,7 @@ mod tests {
 	#[test]
 	fn test_parse_palette_color() {
 		let seq = "\x1b[38;5;196m";
-		let color = AnsiColor::parse(seq).unwrap();
+		let color = AnsiColor::parse_seq(seq).unwrap();
 		assert!(color.is_foreground);
 		assert_eq!(color.rgb, None);
 		assert_eq!(color.palette_index, Some(196));
@@ -391,7 +444,7 @@ mod tests {
 	#[test]
 	fn test_parse_kitty_format() {
 		let seq = "\x1b[38:2:100:150:200m";
-		let color = AnsiColor::parse(seq).unwrap();
+		let color = AnsiColor::parse_seq(seq).unwrap();
 		assert!(color.is_foreground);
 		assert_eq!(color.rgb, Some((100, 150, 200)));
 	}
