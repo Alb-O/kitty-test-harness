@@ -355,11 +355,10 @@ pub fn fg_color_at_text(raw_line: &str, needle: &str) -> Option<(u8, u8, u8)> {
 			}
 			if i < chars.len() {
 				let seq: String = chars[start..=i].iter().collect();
-				if let Some(parsed) = AnsiColor::parse_seq(&seq) {
-					if parsed.is_foreground {
+				if let Some(parsed) = AnsiColor::parse_seq(&seq)
+					&& parsed.is_foreground {
 						current_fg = parsed.rgb;
 					}
-				}
 				if seq == "\x1b[m" || seq == "\x1b[0m" {
 					current_fg = None;
 				}
