@@ -54,62 +54,62 @@ use crate::KeyPress;
 
 /// Common key sequences that are useful for testing.
 pub mod common {
-    use super::*;
+	use super::*;
 
-    /// Ctrl+J - often equivalent to Ctrl+Enter in terminals.
-    /// Use this when testing applications that execute commands on Ctrl+Enter.
-    pub const CTRL_J: KeyPress = KeyPress {
-        key: KeyCode::Char('j'),
-        mods: Modifiers::CTRL,
-    };
+	/// Ctrl+J - often equivalent to Ctrl+Enter in terminals.
+	/// Use this when testing applications that execute commands on Ctrl+Enter.
+	pub const CTRL_J: KeyPress = KeyPress {
+		key: KeyCode::Char('j'),
+		mods: Modifiers::CTRL,
+	};
 
-    /// Ctrl+M - Carriage Return, same as Enter in most contexts.
-    pub const CTRL_M: KeyPress = KeyPress {
-        key: KeyCode::Char('m'),
-        mods: Modifiers::CTRL,
-    };
+	/// Ctrl+M - Carriage Return, same as Enter in most contexts.
+	pub const CTRL_M: KeyPress = KeyPress {
+		key: KeyCode::Char('m'),
+		mods: Modifiers::CTRL,
+	};
 
-    /// Ctrl+C - Interrupt signal.
-    pub const CTRL_C: KeyPress = KeyPress {
-        key: KeyCode::Char('c'),
-        mods: Modifiers::CTRL,
-    };
+	/// Ctrl+C - Interrupt signal.
+	pub const CTRL_C: KeyPress = KeyPress {
+		key: KeyCode::Char('c'),
+		mods: Modifiers::CTRL,
+	};
 
-    /// Ctrl+D - EOF / logout.
-    pub const CTRL_D: KeyPress = KeyPress {
-        key: KeyCode::Char('d'),
-        mods: Modifiers::CTRL,
-    };
+	/// Ctrl+D - EOF / logout.
+	pub const CTRL_D: KeyPress = KeyPress {
+		key: KeyCode::Char('d'),
+		mods: Modifiers::CTRL,
+	};
 
-    /// Ctrl+Z - Suspend.
-    pub const CTRL_Z: KeyPress = KeyPress {
-        key: KeyCode::Char('z'),
-        mods: Modifiers::CTRL,
-    };
+	/// Ctrl+Z - Suspend.
+	pub const CTRL_Z: KeyPress = KeyPress {
+		key: KeyCode::Char('z'),
+		mods: Modifiers::CTRL,
+	};
 
-    /// Escape key.
-    pub const ESCAPE: KeyPress = KeyPress {
-        key: KeyCode::Escape,
-        mods: Modifiers::NONE,
-    };
+	/// Escape key.
+	pub const ESCAPE: KeyPress = KeyPress {
+		key: KeyCode::Escape,
+		mods: Modifiers::NONE,
+	};
 
-    /// Enter key.
-    pub const ENTER: KeyPress = KeyPress {
-        key: KeyCode::Enter,
-        mods: Modifiers::NONE,
-    };
+	/// Enter key.
+	pub const ENTER: KeyPress = KeyPress {
+		key: KeyCode::Enter,
+		mods: Modifiers::NONE,
+	};
 
-    /// Tab key.
-    pub const TAB: KeyPress = KeyPress {
-        key: KeyCode::Tab,
-        mods: Modifiers::NONE,
-    };
+	/// Tab key.
+	pub const TAB: KeyPress = KeyPress {
+		key: KeyCode::Tab,
+		mods: Modifiers::NONE,
+	};
 
-    /// Shift+Tab (backtab).
-    pub const SHIFT_TAB: KeyPress = KeyPress {
-        key: KeyCode::Tab,
-        mods: Modifiers::SHIFT,
-    };
+	/// Shift+Tab (backtab).
+	pub const SHIFT_TAB: KeyPress = KeyPress {
+		key: KeyCode::Tab,
+		mods: Modifiers::SHIFT,
+	};
 }
 
 /// Type a string character by character.
@@ -122,9 +122,9 @@ pub mod common {
 /// type_string(kitty, "hello world");
 /// ```
 pub fn type_string(kitty: &crate::KittyHarness, text: &str) {
-    for ch in text.chars() {
-        kitty.send_text(&ch.to_string());
-    }
+	for ch in text.chars() {
+		kitty.send_text(&ch.to_string());
+	}
 }
 
 /// Type a command string and execute it with Ctrl+J.
@@ -138,6 +138,6 @@ pub fn type_string(kitty: &crate::KittyHarness, text: &str) {
 /// type_and_execute(kitty, "write");
 /// ```
 pub fn type_and_execute(kitty: &crate::KittyHarness, text: &str) {
-    type_string(kitty, text);
-    crate::send_keys(kitty, &[common::CTRL_J]);
+	type_string(kitty, text);
+	crate::send_keys(kitty, &[common::CTRL_J]);
 }

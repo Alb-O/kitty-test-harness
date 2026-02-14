@@ -54,28 +54,28 @@ pub const HORIZONTAL_SEPARATOR: char = '─'; // U+2500
 /// assert_eq!(find_vertical_separator_col(screen), Some(6));
 /// ```
 pub fn find_vertical_separator_col(clean: &str) -> Option<usize> {
-    let lines: Vec<&str> = clean.lines().collect();
-    if lines.is_empty() {
-        return None;
-    }
+	let lines: Vec<&str> = clean.lines().collect();
+	if lines.is_empty() {
+		return None;
+	}
 
-    // Count occurrences of │ at each column position
-    let mut col_counts: HashMap<usize, usize> = HashMap::new();
+	// Count occurrences of │ at each column position
+	let mut col_counts: HashMap<usize, usize> = HashMap::new();
 
-    for line in &lines {
-        for (col, ch) in line.chars().enumerate() {
-            if ch == VERTICAL_SEPARATOR {
-                *col_counts.entry(col).or_insert(0) += 1;
-            }
-        }
-    }
+	for line in &lines {
+		for (col, ch) in line.chars().enumerate() {
+			if ch == VERTICAL_SEPARATOR {
+				*col_counts.entry(col).or_insert(0) += 1;
+			}
+		}
+	}
 
-    // Find the column with the most separator characters (should be a consistent vertical line)
-    col_counts
-        .into_iter()
-        .max_by_key(|(_, count)| *count)
-        .filter(|(_, count)| *count > 5) // Must appear on multiple rows to be a real separator
-        .map(|(col, _)| col)
+	// Find the column with the most separator characters (should be a consistent vertical line)
+	col_counts
+		.into_iter()
+		.max_by_key(|(_, count)| *count)
+		.filter(|(_, count)| *count > 5) // Must appear on multiple rows to be a real separator
+		.map(|(col, _)| col)
 }
 
 /// Find the row position of horizontal separators (─) in the screen.
@@ -102,16 +102,16 @@ pub fn find_vertical_separator_col(clean: &str) -> Option<usize> {
 /// assert_eq!(find_horizontal_separator_row(screen), Some(1));
 /// ```
 pub fn find_horizontal_separator_row(clean: &str) -> Option<usize> {
-    clean
-        .lines()
-        .enumerate()
-        .map(|(row, line)| {
-            let count = line.chars().filter(|&c| c == HORIZONTAL_SEPARATOR).count();
-            (row, count)
-        })
-        .filter(|(_, count)| *count > 5) // Must have multiple separator chars to be a real separator
-        .max_by_key(|(_, count)| *count)
-        .map(|(row, _)| row)
+	clean
+		.lines()
+		.enumerate()
+		.map(|(row, line)| {
+			let count = line.chars().filter(|&c| c == HORIZONTAL_SEPARATOR).count();
+			(row, count)
+		})
+		.filter(|(_, count)| *count > 5) // Must have multiple separator chars to be a real separator
+		.max_by_key(|(_, count)| *count)
+		.map(|(row, _)| row)
 }
 
 /// Find all rows that contain a vertical separator at the given column.
@@ -135,16 +135,12 @@ pub fn find_horizontal_separator_row(clean: &str) -> Option<usize> {
 /// assert_eq!(rows, vec![0, 1]);
 /// ```
 pub fn find_separator_rows_at_col(clean: &str, col: usize) -> Vec<usize> {
-    clean
-        .lines()
-        .enumerate()
-        .filter(|(_, line)| {
-            line.chars()
-                .nth(col)
-                .is_some_and(|c| c == VERTICAL_SEPARATOR)
-        })
-        .map(|(row, _)| row)
-        .collect()
+	clean
+		.lines()
+		.enumerate()
+		.filter(|(_, line)| line.chars().nth(col).is_some_and(|c| c == VERTICAL_SEPARATOR))
+		.map(|(row, _)| row)
+		.collect()
 }
 
 /// Find all columns that contain a horizontal separator at the given row.
@@ -158,93 +154,81 @@ pub fn find_separator_rows_at_col(clean: &str, col: usize) -> Vec<usize> {
 ///
 /// A vector of column indices where the separator character appears at the specified row.
 pub fn find_separator_cols_at_row(clean: &str, row: usize) -> Vec<usize> {
-    clean
-        .lines()
-        .nth(row)
-        .map(|line| {
-            line.chars()
-                .enumerate()
-                .filter(|(_, c)| *c == HORIZONTAL_SEPARATOR)
-                .map(|(col, _)| col)
-                .collect()
-        })
-        .unwrap_or_default()
+	clean
+		.lines()
+		.nth(row)
+		.map(|line| {
+			line.chars()
+				.enumerate()
+				.filter(|(_, c)| *c == HORIZONTAL_SEPARATOR)
+				.map(|(col, _)| col)
+				.collect()
+		})
+		.unwrap_or_default()
 }
 
 /// Represents an extracted ANSI color from terminal output.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AnsiColor {
-    /// The raw ANSI escape sequence (e.g., "\x1b[38:2:255:128:0m")
-    pub raw: String,
-    /// Whether this is a foreground (true) or background (false) color
-    pub is_foreground: bool,
-    /// RGB values if this is a true-color (24-bit) specification
-    pub rgb: Option<(u8, u8, u8)>,
-    /// 256-color palette index if this is an indexed color
-    pub palette_index: Option<u8>,
+	/// The raw ANSI escape sequence (e.g., "\x1b[38:2:255:128:0m")
+	pub raw: String,
+	/// Whether this is a foreground (true) or background (false) color
+	pub is_foreground: bool,
+	/// RGB values if this is a true-color (24-bit) specification
+	pub rgb: Option<(u8, u8, u8)>,
+	/// 256-color palette index if this is an indexed color
+	pub palette_index: Option<u8>,
 }
 
 impl AnsiColor {
-    /// Parse an ANSI SGR color sequence into an `AnsiColor` struct.
-    ///
-    /// Supports both semicolon-separated (standard) and colon-separated (kitty)
-    /// color specifications.
-    fn parse(seq: &str) -> Option<Self> {
-        // Check if it's a foreground or background color
-        let is_foreground = seq.contains("38;") || seq.contains("38:");
-        let is_background = seq.contains("48;") || seq.contains("48:");
+	/// Parse an ANSI SGR color sequence into an `AnsiColor` struct.
+	///
+	/// Supports both semicolon-separated (standard) and colon-separated (kitty)
+	/// color specifications.
+	fn parse(seq: &str) -> Option<Self> {
+		// Check if it's a foreground or background color
+		let is_foreground = seq.contains("38;") || seq.contains("38:");
+		let is_background = seq.contains("48;") || seq.contains("48:");
 
-        if !is_foreground && !is_background {
-            return None;
-        }
+		if !is_foreground && !is_background {
+			return None;
+		}
 
-        // Try to extract RGB or palette index
-        let mut rgb = None;
-        let mut palette_index = None;
+		// Try to extract RGB or palette index
+		let mut rgb = None;
+		let mut palette_index = None;
 
-        // Handle RGB colors (38;2;R;G;B or 38:2:R:G:B)
-        if seq.contains(";2;") || seq.contains(":2:") {
-            let parts: Vec<&str> = seq
-                .trim_start_matches("\x1b[")
-                .trim_end_matches('m')
-                .split([';', ':'])
-                .collect();
+		// Handle RGB colors (38;2;R;G;B or 38:2:R:G:B)
+		if seq.contains(";2;") || seq.contains(":2:") {
+			let parts: Vec<&str> = seq.trim_start_matches("\x1b[").trim_end_matches('m').split([';', ':']).collect();
 
-            // Find the "2" marker and extract R, G, B
-            if let Some(pos) = parts.iter().position(|&p| p == "2")
-                && parts.len() > pos + 3
-                && let (Ok(r), Ok(g), Ok(b)) = (
-                    parts[pos + 1].parse::<u8>(),
-                    parts[pos + 2].parse::<u8>(),
-                    parts[pos + 3].parse::<u8>(),
-                )
-            {
-                rgb = Some((r, g, b));
-            }
-        }
-        // Handle 256-color palette (38;5;N or 38:5:N)
-        else if seq.contains(";5;") || seq.contains(":5:") {
-            let parts: Vec<&str> = seq
-                .trim_start_matches("\x1b[")
-                .trim_end_matches('m')
-                .split([';', ':'])
-                .collect();
+			// Find the "2" marker and extract R, G, B
+			if let Some(pos) = parts.iter().position(|&p| p == "2")
+				&& parts.len() > pos + 3
+				&& let (Ok(r), Ok(g), Ok(b)) = (parts[pos + 1].parse::<u8>(), parts[pos + 2].parse::<u8>(), parts[pos + 3].parse::<u8>())
+			{
+				rgb = Some((r, g, b));
+			}
+		}
+		// Handle 256-color palette (38;5;N or 38:5:N)
+		else if seq.contains(";5;") || seq.contains(":5:") {
+			let parts: Vec<&str> = seq.trim_start_matches("\x1b[").trim_end_matches('m').split([';', ':']).collect();
 
-            if let Some(pos) = parts.iter().position(|&p| p == "5")
-                && parts.len() > pos + 1
-                && let Ok(idx) = parts[pos + 1].parse::<u8>()
-            {
-                palette_index = Some(idx);
-            }
-        }
+			if let Some(pos) = parts.iter().position(|&p| p == "5")
+				&& parts.len() > pos + 1
+				&& let Ok(idx) = parts[pos + 1].parse::<u8>()
+			{
+				palette_index = Some(idx);
+			}
+		}
 
-        Some(AnsiColor {
-            raw: seq.to_string(),
-            is_foreground,
-            rgb,
-            palette_index,
-        })
-    }
+		Some(AnsiColor {
+			raw: seq.to_string(),
+			is_foreground,
+			rgb,
+			palette_index,
+		})
+	}
 }
 
 /// Extract all ANSI color codes from a specific row in the raw terminal output.
@@ -282,45 +266,45 @@ impl AnsiColor {
 /// assert!(colors.iter().any(|c| c.contains("255")));
 /// ```
 pub fn extract_row_colors(raw: &str, row: usize) -> Vec<String> {
-    let lines: Vec<&str> = raw.lines().collect();
-    if row >= lines.len() {
-        return vec![];
-    }
+	let lines: Vec<&str> = raw.lines().collect();
+	if row >= lines.len() {
+		return vec![];
+	}
 
-    let line = lines[row];
-    let mut colors = vec![];
+	let line = lines[row];
+	let mut colors = vec![];
 
-    // Look for ANSI SGR sequences
-    let mut i = 0;
-    let chars: Vec<char> = line.chars().collect();
-    while i < chars.len() {
-        if chars[i] == '\x1b' && i + 1 < chars.len() && chars[i + 1] == '[' {
-            // Find the 'm' that ends the sequence
-            let start = i;
-            while i < chars.len() && chars[i] != 'm' {
-                i += 1;
-            }
-            if i < chars.len() {
-                let seq: String = chars[start..=i].iter().collect();
-                // Check if it's a foreground or background color
-                if (seq.contains("38;2;")
-                    || seq.contains("38;5;")
-                    || seq.contains("38:2:")
-                    || seq.contains("38:5:")
-                    || seq.contains("48;2;")
-                    || seq.contains("48;5;")
-                    || seq.contains("48:2:")
-                    || seq.contains("48:5:"))
-                    && !colors.contains(&seq)
-                {
-                    colors.push(seq);
-                }
-            }
-        }
-        i += 1;
-    }
+	// Look for ANSI SGR sequences
+	let mut i = 0;
+	let chars: Vec<char> = line.chars().collect();
+	while i < chars.len() {
+		if chars[i] == '\x1b' && i + 1 < chars.len() && chars[i + 1] == '[' {
+			// Find the 'm' that ends the sequence
+			let start = i;
+			while i < chars.len() && chars[i] != 'm' {
+				i += 1;
+			}
+			if i < chars.len() {
+				let seq: String = chars[start..=i].iter().collect();
+				// Check if it's a foreground or background color
+				if (seq.contains("38;2;")
+					|| seq.contains("38;5;")
+					|| seq.contains("38:2:")
+					|| seq.contains("38:5:")
+					|| seq.contains("48;2;")
+					|| seq.contains("48;5;")
+					|| seq.contains("48:2:")
+					|| seq.contains("48:5:"))
+					&& !colors.contains(&seq)
+				{
+					colors.push(seq);
+				}
+			}
+		}
+		i += 1;
+	}
 
-    colors
+	colors
 }
 
 /// Extract structured ANSI color information from a specific row.
@@ -337,81 +321,78 @@ pub fn extract_row_colors(raw: &str, row: usize) -> Vec<String> {
 ///
 /// A vector of parsed `AnsiColor` structs.
 pub fn extract_row_colors_parsed(raw: &str, row: usize) -> Vec<AnsiColor> {
-    extract_row_colors(raw, row)
-        .into_iter()
-        .filter_map(|seq| AnsiColor::parse(&seq))
-        .collect()
+	extract_row_colors(raw, row).into_iter().filter_map(|seq| AnsiColor::parse(&seq)).collect()
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+	use super::*;
 
-    #[test]
-    fn test_find_vertical_separator() {
-        let screen = "left  │right\n\
+	#[test]
+	fn test_find_vertical_separator() {
+		let screen = "left  │right\n\
 		              text  │more\n\
 		              here  │data\n\
 		              foo   │bar\n\
 		              a     │b\n\
 		              c     │d";
-        assert_eq!(find_vertical_separator_col(screen), Some(6));
-    }
+		assert_eq!(find_vertical_separator_col(screen), Some(6));
+	}
 
-    #[test]
-    fn test_find_horizontal_separator() {
-        let screen = "top content here\n\
+	#[test]
+	fn test_find_horizontal_separator() {
+		let screen = "top content here\n\
 		              ────────────────\n\
 		              bottom text here";
-        assert_eq!(find_horizontal_separator_row(screen), Some(1));
-    }
+		assert_eq!(find_horizontal_separator_row(screen), Some(1));
+	}
 
-    #[test]
-    fn test_separator_rows_at_col() {
-        let screen = "a│b\nc│d\ne f";
-        let rows = find_separator_rows_at_col(screen, 1);
-        assert_eq!(rows, vec![0, 1]);
-    }
+	#[test]
+	fn test_separator_rows_at_col() {
+		let screen = "a│b\nc│d\ne f";
+		let rows = find_separator_rows_at_col(screen, 1);
+		assert_eq!(rows, vec![0, 1]);
+	}
 
-    #[test]
-    fn test_extract_colors_semicolon() {
-        let raw = "text\x1b[38;2;255;128;64mcolored\x1b[m";
-        let colors = extract_row_colors(raw, 0);
-        assert_eq!(colors.len(), 1);
-        assert!(colors[0].contains("38;2;255;128;64"));
-    }
+	#[test]
+	fn test_extract_colors_semicolon() {
+		let raw = "text\x1b[38;2;255;128;64mcolored\x1b[m";
+		let colors = extract_row_colors(raw, 0);
+		assert_eq!(colors.len(), 1);
+		assert!(colors[0].contains("38;2;255;128;64"));
+	}
 
-    #[test]
-    fn test_extract_colors_colon() {
-        let raw = "text\x1b[38:2:255:128:64mcolored\x1b[m";
-        let colors = extract_row_colors(raw, 0);
-        assert_eq!(colors.len(), 1);
-        assert!(colors[0].contains("38:2:255:128:64"));
-    }
+	#[test]
+	fn test_extract_colors_colon() {
+		let raw = "text\x1b[38:2:255:128:64mcolored\x1b[m";
+		let colors = extract_row_colors(raw, 0);
+		assert_eq!(colors.len(), 1);
+		assert!(colors[0].contains("38:2:255:128:64"));
+	}
 
-    #[test]
-    fn test_parse_rgb_color() {
-        let seq = "\x1b[38;2;255;128;64m";
-        let color = AnsiColor::parse(seq).unwrap();
-        assert!(color.is_foreground);
-        assert_eq!(color.rgb, Some((255, 128, 64)));
-        assert_eq!(color.palette_index, None);
-    }
+	#[test]
+	fn test_parse_rgb_color() {
+		let seq = "\x1b[38;2;255;128;64m";
+		let color = AnsiColor::parse(seq).unwrap();
+		assert!(color.is_foreground);
+		assert_eq!(color.rgb, Some((255, 128, 64)));
+		assert_eq!(color.palette_index, None);
+	}
 
-    #[test]
-    fn test_parse_palette_color() {
-        let seq = "\x1b[38;5;196m";
-        let color = AnsiColor::parse(seq).unwrap();
-        assert!(color.is_foreground);
-        assert_eq!(color.rgb, None);
-        assert_eq!(color.palette_index, Some(196));
-    }
+	#[test]
+	fn test_parse_palette_color() {
+		let seq = "\x1b[38;5;196m";
+		let color = AnsiColor::parse(seq).unwrap();
+		assert!(color.is_foreground);
+		assert_eq!(color.rgb, None);
+		assert_eq!(color.palette_index, Some(196));
+	}
 
-    #[test]
-    fn test_parse_kitty_format() {
-        let seq = "\x1b[38:2:100:150:200m";
-        let color = AnsiColor::parse(seq).unwrap();
-        assert!(color.is_foreground);
-        assert_eq!(color.rgb, Some((100, 150, 200)));
-    }
+	#[test]
+	fn test_parse_kitty_format() {
+		let seq = "\x1b[38:2:100:150:200m";
+		let color = AnsiColor::parse(seq).unwrap();
+		assert!(color.is_foreground);
+		assert_eq!(color.rgb, Some((100, 150, 200)));
+	}
 }

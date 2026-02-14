@@ -47,113 +47,99 @@ static LOG_COUNTER: AtomicUsize = AtomicUsize::new(0);
 ///
 /// The file is created empty and ready for the application to append to.
 pub fn create_test_log() -> PathBuf {
-    let pid = std::process::id();
-    let idx = LOG_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let path = std::env::temp_dir().join(format!("kitty-test-{pid}-{idx}.log"));
+	let pid = std::process::id();
+	let idx = LOG_COUNTER.fetch_add(1, Ordering::Relaxed);
+	let path = std::env::temp_dir().join(format!("kitty-test-{pid}-{idx}.log"));
 
-    // Remove any existing file from a previous run
-    let _ = fs::remove_file(&path);
+	// Remove any existing file from a previous run
+	let _ = fs::remove_file(&path);
 
-    // Create empty file
-    File::create(&path).expect("create test log file");
-    path
+	// Create empty file
+	File::create(&path).expect("create test log file");
+	path
 }
 
 /// Reads all lines from a test log file.
 ///
 /// Returns an empty vector if the file doesn't exist or can't be read.
 pub fn read_test_log(path: &Path) -> Vec<String> {
-    if !path.exists() {
-        return Vec::new();
-    }
-    let Ok(file) = File::open(path) else {
-        return Vec::new();
-    };
-    BufReader::new(file)
-        .lines()
-        .map(|l| l.unwrap_or_default())
-        .collect()
+	if !path.exists() {
+		return Vec::new();
+	}
+	let Ok(file) = File::open(path) else {
+		return Vec::new();
+	};
+	BufReader::new(file).lines().map(|l| l.unwrap_or_default()).collect()
 }
 
 /// Waits for a log file to contain a line matching the predicate.
 ///
 /// Polls the file every 10ms until timeout is reached.
 /// Returns the first matching line, or `None` if timeout expires.
-pub fn wait_for_log_line(
-    path: &Path,
-    timeout: Duration,
-    predicate: impl Fn(&str) -> bool,
-) -> Option<String> {
-    let start = std::time::Instant::now();
-    while start.elapsed() < timeout {
-        for line in read_test_log(path) {
-            if predicate(&line) {
-                return Some(line);
-            }
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    }
-    None
+pub fn wait_for_log_line(path: &Path, timeout: Duration, predicate: impl Fn(&str) -> bool) -> Option<String> {
+	let start = std::time::Instant::now();
+	while start.elapsed() < timeout {
+		for line in read_test_log(path) {
+			if predicate(&line) {
+				return Some(line);
+			}
+		}
+		std::thread::sleep(Duration::from_millis(10));
+	}
+	None
 }
 
 /// Removes a test log file.
 ///
 /// Silently ignores errors (e.g., if file doesn't exist).
 pub fn cleanup_test_log(path: &Path) {
-    let _ = fs::remove_file(path);
+	let _ = fs::remove_file(path);
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::io::Write;
+	use std::io::Write;
 
-    #[test]
-    fn test_create_and_read_log() {
-        let path = create_test_log();
-        assert!(path.exists());
+	use super::*;
 
-        // Write some lines
-        {
-            let mut file = fs::OpenOptions::new()
-                .append(true)
-                .open(&path)
-                .expect("open for append");
-            writeln!(file, "line 1").unwrap();
-            writeln!(file, "line 2").unwrap();
-        }
+	#[test]
+	fn test_create_and_read_log() {
+		let path = create_test_log();
+		assert!(path.exists());
 
-        let lines = read_test_log(&path);
-        assert_eq!(lines.len(), 2);
-        assert_eq!(lines[0], "line 1");
-        assert_eq!(lines[1], "line 2");
+		// Write some lines
+		{
+			let mut file = fs::OpenOptions::new().append(true).open(&path).expect("open for append");
+			writeln!(file, "line 1").unwrap();
+			writeln!(file, "line 2").unwrap();
+		}
 
-        cleanup_test_log(&path);
-        assert!(!path.exists());
-    }
+		let lines = read_test_log(&path);
+		assert_eq!(lines.len(), 2);
+		assert_eq!(lines[0], "line 1");
+		assert_eq!(lines[1], "line 2");
 
-    #[test]
-    fn test_wait_for_log_line() {
-        let path = create_test_log();
+		cleanup_test_log(&path);
+		assert!(!path.exists());
+	}
 
-        // Spawn thread to write after delay
-        let path_clone = path.clone();
-        std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_millis(50));
-            let mut file = fs::OpenOptions::new()
-                .append(true)
-                .open(&path_clone)
-                .expect("open for append");
-            writeln!(file, "marker: found it").unwrap();
-        });
+	#[test]
+	fn test_wait_for_log_line() {
+		let path = create_test_log();
 
-        let result = wait_for_log_line(&path, Duration::from_secs(1), |line| {
-            line.contains("marker:")
-        });
+		// Spawn thread to write after delay
+		let path_clone = path.clone();
+		std::thread::spawn(move || {
+			std::thread::sleep(Duration::from_millis(50));
+			let mut file = fs::OpenOptions::new().append(true).open(&path_clone).expect("open for append");
+			writeln!(file, "marker: found it").unwrap();
+		});
 
-        assert!(result.is_some());
-        assert!(result.unwrap().contains("found it"));
+		let result = wait_for_log_line(&path, Duration::from_secs(1), |line| line.contains("marker:"));
 
-        cleanup_test_log(&path);
-    }
+		assert!(result.is_some());
+		assert!(result.unwrap().contains("found it"));
+
+		cleanup_test_log(&path);
+	}
 }
